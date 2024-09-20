@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversational AI</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #chat { max-width: 600px; margin: auto; }
+        .message { padding: 10px; margin: 5px; border-radius: 5px; }
+        .user { background: #d1e7dd; text-align: right; }
+        .ai { background: #f8d7da; text-align: left; }
+        #messages { max-height: 400px; overflow-y: auto; }
+        #input-container { display: flex; margin-top: 10px; }
+        #input-message { flex: 1; padding: 10px; }
+        #buttons-container { display: flex; gap: 10px; margin-left: 10px; }
+        #typing-indicator { font-style: italic; color: gray; margin: 5px; display: none; }
+    </style>
+</head>
+<body>
+    <div id="chat">
+        <h1>Conversational AI</h1>
+        <div id="messages">
+            <div class="message ai">Hello! This is a form-filling AI. May I expect a "Hi"?</div>
+        </div>
+        <div id="typing-indicator">AI is typing...</div>
+        <div id="input-container">
+            <input type="text" id="input-message" placeholder="Type your message..." />
+            <div id="buttons-container">
+                <button id="send-button">Send</button>
+                <button id="help-button">Help</button>
+                <button id="exit-button">Exit</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const messagesContainer = document.getElementById('messages');
+        const inputMessage = document.getElementById('input-message');
+        const sendButton = document.getElementById('send-button');
+        const helpButton = document.getElementById('help-button');
+        const exitButton = document.getElementById('exit-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        function appendMessage(text, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', type);
+            messageDiv.textContent = text;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        async function sendMessage(message) {
+            appendMessage(message, 'user');
+            inputMessage.value = '';
+
+            // Show typing indicator and disable buttons
+            typingIndicator.style.display = 'block';
+            disableButtons(true);
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+
+                // Hide typing indicator and enable buttons
+                typingIndicator.style.display = 'none';
+                disableButtons(false);
+
+                appendMessage(data.response, 'ai');
+
+                if (data.response.toLowerCase() === 'exit') {
+                    document.getElementById('messages').innerHTML = '<div class="message ai">Hello! This is a form-filling AI. May I expect a "Hi"?</div>';
+                }
+            } catch (error) {
+                appendMessage('Error sending message.', 'ai');
+                typingIndicator.style.display = 'none';
+                disableButtons(false);
+            }
+        }
+
+        function disableButtons(disabled) {
+            sendButton.disabled = disabled;
+            helpButton.disabled = disabled;
+            exitButton.disabled = disabled;
+        }
+
+        sendButton.addEventListener('click', () => sendMessage(inputMessage.value));
+        inputMessage.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendMessage(inputMessage.value);
+        });
+
+        // Handle the Help button click by sending "help" to the server
+        helpButton.addEventListener('click', () => sendMessage('help'));
+
+        // Handle the Exit button click by sending "exit" to the server
+        exitButton.addEventListener('click', () => sendMessage('exit'));
+    </script>
+</body>
+</html>
